@@ -4,6 +4,6 @@
     <string name="hello">Hello World, DatumDroidOCRActivity!</string>
     <string name="app_name">OCR</string>
     <string name="button_text">OCR!</string>
-    <string name="text_hint">OCRed Text will appear here</string>
+    <string name="text_hint">La matrícula apaercerá aquí</string>
 
 </resources>

@@ -4,8 +4,6 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.net.Uri;
@@ -27,7 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public class Principal extends AppCompatActivity {
+public class Principal extends AppCompatActivity{
 
     public static final String PACKAGE_NAME = "com.example.usuario.ocr";
     public static final String DATA_PATH = Environment.getExternalStorageDirectory().toString() + "/SimpleAndroidOCR/";
@@ -39,11 +37,12 @@ public class Principal extends AppCompatActivity {
 
     private static final String TAG = "SimpleAndroidOCR.java";
 
-    protected Button _button;
+    protected Button _button, _button2;
     protected ImageView _image;
     protected EditText _field;
     protected String _path;
     protected boolean _taken;
+    private Bitmap imagen;
 
     protected static final String PHOTO_TAKEN = "photo_taken";
 
@@ -97,11 +96,51 @@ public class Principal extends AppCompatActivity {
             }
         }
 
-        // _image = (ImageView) findViewById(R.id.image);
         _field = (EditText) findViewById(R.id.field);
         _image = (ImageView)findViewById(R.id.imageView);
         _button = (Button) findViewById(R.id.button);
         _button.setOnClickListener(new ButtonClickHandler());
+        _button2 = (Button) findViewById(R.id.button2);
+        _button2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(Principal.this, Camera.class);
+                startActivity(i);
+            }
+        });
+
+        //comprobar si viene de haber tomado una foto
+        Bundle e = getIntent().getExtras();
+        if(e != null){
+            imagen = (Bitmap) e.get("img");
+            _image.setImageBitmap(imagen);
+
+            TessBaseAPI baseApi = new TessBaseAPI();
+            baseApi.setDebug(true);
+            baseApi.init(DATA_PATH, lang);
+            baseApi.setImage(imagen);
+
+            String recognizedText = baseApi.getUTF8Text();
+
+            baseApi.end();
+
+            // You now have the text in recognizedText var, you can do anything with it.
+            // We will display a stripped out trimmed alpha-numeric version of it (if lang is eng)
+            // so that garbage doesn't make it to the display.
+
+            Log.v(TAG, "OCRED TEXT: " + recognizedText);
+
+            if ( lang.equalsIgnoreCase("eng") ) {
+                recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9]+", " ");
+                recognizedText = recognizedText.trim();
+            }
+
+            recognizedText = recognizedText.trim();
+
+            if ( recognizedText.length() != 0 ) {
+                _field.setText(recognizedText);
+            }
+        }
 
         _path = DATA_PATH + "/ocr.jpg";
     }
@@ -161,9 +200,7 @@ public class Principal extends AppCompatActivity {
 
         try {
             ExifInterface exif = new ExifInterface(_path);
-            int exifOrientation = exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL);
+            int exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
 
             Log.v(TAG, "Orient: " + exifOrientation);
 
@@ -204,50 +241,12 @@ public class Principal extends AppCompatActivity {
             Log.e(TAG, "Couldn't correct orientation: " + e.toString());
         }
 
-        _image.setImageBitmap( bitmap );
+        //_image.setImageBitmap( bitmap );
 
         Log.v(TAG, "Before baseApi");
 
-        TessBaseAPI baseApi = new TessBaseAPI();
-        baseApi.setDebug(true);
-        baseApi.init(DATA_PATH, lang);
-        baseApi.setImage(bitmap);
 
-        String recognizedText = baseApi.getUTF8Text();
-
-        baseApi.end();
-
-        // You now have the text in recognizedText var, you can do anything with it.
-        // We will display a stripped out trimmed alpha-numeric version of it (if lang is eng)
-        // so that garbage doesn't make it to the display.
-
-        Log.v(TAG, "OCRED TEXT: " + recognizedText);
-
-        if ( lang.equalsIgnoreCase("eng") ) {
-            recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9]+", " ");
-            recognizedText = recognizedText.trim();
-        }
-
-        recognizedText = recognizedText.trim();
-
-        if ( recognizedText.length() != 0 ) {
-            //_field.setText(_field.getText().toString().length() == 0 ? recognizedText : _field.getText() + " " + recognizedText);
-            //_field.setSelection(_field.getText().toString().length());
-            _field.setText(recognizedText);
-        }
-
-        // Cycle done.
     }
 
-    /*private Bitmap blancoynegro(Bitmap b){
-        ColorMatrix matrix = new ColorMatrix();
-        matrix.setSaturation(0);
 
-        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
-        b.setColorFilter(filter);
-        return null;
-    }*/
-
-    // www.Gaut.am was here
-    // Thanks for reading!
 }

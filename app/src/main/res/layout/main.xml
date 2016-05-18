@@ -4,17 +4,31 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
-    <Button
-        android:id="@+id/button"
+    <LinearLayout
+        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/button_text" />
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Capture Image"
+            android:layout_weight="1" />
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Show Camera"
+            android:id="@+id/button2"
+            android:layout_weight="1" />
+    </LinearLayout>
 
     <EditText
         android:id="@+id/field"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/text_hint" />
+        android:hint="License Plate number will appear here" />
 
     <ImageView
         android:layout_width="wrap_content"
