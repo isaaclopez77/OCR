@@ -7,16 +7,13 @@ import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewDebug;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ImageView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -31,6 +28,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
@@ -124,7 +122,37 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         mRgba.release();
     }
 
+    private Mat segundoIntento(Mat mat){
+        // Consider the image for processing
+        Mat imageHSV = new Mat(mat.size(), 1);
+        Mat imageBlurr = new Mat(mat.size(), 1);
+        Mat imageA = new Mat(mat.size(), 127);
+        Imgproc.cvtColor(mat, imageHSV, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.GaussianBlur(imageHSV, imageBlurr, new Size(5,5), 0);
+        Imgproc.adaptiveThreshold(imageBlurr, imageA, 255,Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY,7, 5);
+
+        List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        Imgproc.findContours(imageA, contours, new Mat(), Imgproc.RETR_EXTERNAL,Imgproc.CHAIN_APPROX_SIMPLE);
+
+        //Imgproc.drawContours(imageBlurr, contours, 1, new Scalar(0,0,255));
+        for(int i=0; i< contours.size();i++){
+            if (Imgproc.contourArea(contours.get(i)) > 50 ){
+                Rect rect = Imgproc.boundingRect(contours.get(i));
+                System.out.println(rect.height);
+                if (rect.height > 28){
+                    //System.out.println(rect.x +","+rect.y+","+rect.height+","+rect.width);
+                    Imgproc.rectangle(mat, new Point(rect.x,rect.y), new Point(rect.x+rect.width,rect.y+rect.height),new Scalar(0,0,255));
+                }
+            }
+        }
+        Log.e("devolviendo","ulti");
+        return imageHSV;
+    }
+
     public boolean onTouch(View v, MotionEvent event) {
+        viewFinder = toEscalaDeGris(viewFinder);
+
+
         Bitmap bmp = Bitmap.createBitmap(viewFinder.cols(), viewFinder.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(viewFinder, bmp);
 
@@ -137,20 +165,18 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
 
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
-        Imgproc.rectangle(mRgba, new Point(500 * 1 / 3, 500 * 1 / 3), new Point(900 * 2 / 3, 500 * 2 / 3), new Scalar(0));
+        Imgproc.rectangle(mRgba, new Point(500 * 1 / 3, 550 * 1 / 3), new Point(1000 * 2 / 3, 450 * 2 / 3), new Scalar(0, 255, 0));
 
-        Rect roi = new Rect(new Point(500 * 1 / 3 , 500 * 1 / 3), new Point(900 * 2 / 3, 500 * 2 / 3));
+        Rect roi = new Rect(new Point(500 * 1 / 3 , 550 * 1 / 3), new Point(1000 * 2 / 3, 450 * 2 / 3));
 
         viewFinder = mRgba.submat(roi);
-        /*Bitmap bmp = Bitmap.createBitmap(viewFinder.cols(), viewFinder.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(viewFinder, bmp);
-        bmp = toEscalaDeGris(bmp);
-        Utils.bitmapToMat(bmp,viewFinder);*/
+        //viewFinder = segundoIntento(viewFinder);
         //findBiggestContour(viewFinder);
 
 
         return mRgba;
     }
+
     private void findBiggestContour(Mat src) {
         contours.clear();
         Mat image32S = new Mat();
@@ -158,7 +184,7 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         src.convertTo(image32S, CvType.CV_8UC1);
         Mat matObject = new Mat(new Size(576,648),CvType.CV_8UC1,new Scalar(0));
         //Log.v("estado","External:" + Imgproc.RETR_EXTERNAL + ", Floodfill:" + Imgproc.RETR_FLOODFILL);
-        Imgproc.findContours(src, contours, matObject, Imgproc.RETR_FLOODFILL, Imgproc.CHAIN_APPROX_NONE);
+        Imgproc.findContours(src, contours, matObject, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
         double maxArea = 0;
         int idxMax = 0;
@@ -178,15 +204,14 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         }
     }
 
-    public static Bitmap toEscalaDeGris(Bitmap bmpOriginal) {
-        Bitmap bmpGrayscale = Bitmap.createBitmap(bmpOriginal.getWidth(),bmpOriginal.getHeight(), Bitmap.Config.ARGB_8888);
-        Canvas c = new Canvas(bmpGrayscale);
-        Paint paint = new Paint();
-        ColorMatrix cm = new ColorMatrix();
-        cm.setSaturation(0);
-        ColorMatrixColorFilter f = new ColorMatrixColorFilter(cm);
-        paint.setColorFilter(f);
-        c.drawBitmap(bmpOriginal, 0, 0, paint);
-        return bmpGrayscale;
+    public static Mat toEscalaDeGris(Mat mat) {
+        Mat imageHSV = new Mat(mat.size(), 1);
+        Mat imageBlurr = new Mat(mat.size(), 1); // blanco y negro
+        Mat imageA = new Mat(mat.size(), 127); // eliminar ruido
+        Imgproc.cvtColor(mat, imageHSV, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.GaussianBlur(imageHSV, imageBlurr, new Size(5,5), 0);
+        Imgproc.adaptiveThreshold(imageBlurr, imageA, 255,Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY,7, 5);
+    Log.e("ee","2");
+        return imageBlurr;
     }
 }
