@@ -7,13 +7,18 @@ import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.TextView;
+
+import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -33,15 +38,25 @@ import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Camera extends Activity implements View.OnTouchListener, CameraBridgeViewBase.CvCameraViewListener2 {
 
     private static final String TAG = "OCVSample::Activity";
     private Mat mRgba;
+    private int contador;
+    private TextView tvMatricula;
+    private Bitmap currentBitmap;
+    private String currentLicensePlate;
 
     private CameraBridgeViewBase mOpenCvCameraView;
     private Mat viewFinder;
-    List<MatOfPoint> contours = new ArrayList<>();
+    //List<MatOfPoint> contours = new ArrayList<>();
+
+    public static final String DATA_PATH = Environment.getExternalStorageDirectory().toString() + "/SimpleAndroidOCR/";
+    public static final String lang = "eng";
+
 
     private BaseLoaderCallback mOpenCVCallBack = new BaseLoaderCallback(this) {
         @Override
@@ -85,6 +100,7 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.color_blob_detection_activity_surface_view);
         mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
         mOpenCvCameraView.setCvCameraViewListener(this);
+        tvMatricula = (TextView)findViewById(R.id.tvMatricula);
     }
 
     @Override
@@ -122,7 +138,7 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         mRgba.release();
     }
 
-    private Mat segundoIntento(Mat mat){
+    /*private Mat segundoIntento(Mat mat){
         // Consider the image for processing
         Mat imageHSV = new Mat(mat.size(), 1);
         Mat imageBlurr = new Mat(mat.size(), 1);
@@ -147,17 +163,19 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         }
         Log.e("devolviendo","ulti");
         return imageHSV;
-    }
+    }*/
 
     public boolean onTouch(View v, MotionEvent event) {
-        viewFinder = toEscalaDeGris(viewFinder);
+        /*viewFinder = toEscalaDeGris(viewFinder);
 
 
         Bitmap bmp = Bitmap.createBitmap(viewFinder.cols(), viewFinder.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(viewFinder, bmp);
+        Utils.matToBitmap(viewFinder, bmp);*/
+
 
         Intent i = new Intent(this, Principal.class);
-        i.putExtra("img",bmp);
+        i.putExtra("img",currentBitmap);
+        i.putExtra("matricula",currentLicensePlate);
         startActivity(i);
         finish();
         return false; // don't need subsequent touch events
@@ -172,12 +190,14 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         viewFinder = mRgba.submat(roi);
         //viewFinder = segundoIntento(viewFinder);
         //findBiggestContour(viewFinder);
-
-
+        if(contador % 20 == 0){
+            new OCRTask().execute(viewFinder);
+        }
+        contador++;
         return mRgba;
     }
 
-    private void findBiggestContour(Mat src) {
+    /*private void findBiggestContour(Mat src) {
         contours.clear();
         Mat image32S = new Mat();
 
@@ -202,7 +222,7 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
             Rect r = Imgproc.boundingRect(contours.get(idxMax));
             Imgproc.rectangle(mRgba, r.tl(), r.br(), new Scalar(255, 0, 0, 255), 3, 8, 0); //draw rectangle
         }
-    }
+    }*/
 
     public static Mat toEscalaDeGris(Mat mat) {
         Mat imageHSV = new Mat(mat.size(), 1);
@@ -211,7 +231,50 @@ public class Camera extends Activity implements View.OnTouchListener, CameraBrid
         Imgproc.cvtColor(mat, imageHSV, Imgproc.COLOR_BGR2GRAY);
         Imgproc.GaussianBlur(imageHSV, imageBlurr, new Size(5,5), 0);
         Imgproc.adaptiveThreshold(imageBlurr, imageA, 255,Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY,7, 5);
-    Log.e("ee","2");
         return imageBlurr;
+    }
+
+    class OCRTask extends AsyncTask<Mat,Void,String>{
+
+        @Override
+        protected String doInBackground(Mat... params) {
+
+            Mat mat = params[0];
+
+            Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
+            mat = toEscalaDeGris(mat);
+
+            Utils.matToBitmap(mat, bmp);
+
+            TessBaseAPI baseApi = new TessBaseAPI();
+            baseApi.setDebug(true);
+            baseApi.init(DATA_PATH, lang);
+            baseApi.setImage(bmp);
+            String recognizedText = baseApi.getUTF8Text();
+            baseApi.end();
+
+            currentBitmap = bmp;
+            return recognizedText;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            s = s.replaceAll("[^a-zA-Z0-9]+", " ");
+            s = s.trim();
+
+            tvMatricula.setText(s);
+
+            Pattern pat = Pattern.compile("^[0-9]{4}\\s*[a-zA-Z]{3}$");
+            Matcher mat = pat.matcher(s);
+            if (mat.matches()) {
+                tvMatricula.setTextColor(getResources().getColor(R.color.colorNoError));
+            } else {
+                tvMatricula.setTextColor(getResources().getColor(R.color.colorError));
+            }
+
+            currentLicensePlate = s;
+            tvMatricula.setText(s);
+        }
     }
 }

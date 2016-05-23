@@ -40,7 +40,7 @@ public class Principal extends AppCompatActivity{
     protected Button _button, _button2;
     protected ImageView _image;
     protected EditText _field;
-    protected String _path;
+    protected String _path, matricula;
     protected boolean _taken;
     private Bitmap imagen;
 
@@ -98,8 +98,8 @@ public class Principal extends AppCompatActivity{
 
         _field = (EditText) findViewById(R.id.field);
         _image = (ImageView)findViewById(R.id.imageView);
-        _button = (Button) findViewById(R.id.button);
-        _button.setOnClickListener(new ButtonClickHandler());
+        //_button = (Button) findViewById(R.id.button);
+        //_button.setOnClickListener(new ButtonClickHandler());
         _button2 = (Button) findViewById(R.id.button2);
         _button2.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -113,22 +113,25 @@ public class Principal extends AppCompatActivity{
         Bundle e = getIntent().getExtras();
         if(e != null){
             imagen = (Bitmap) e.get("img");
+            matricula = (String) e.get("matricula");
             _image.setImageBitmap(imagen);
 
-            TessBaseAPI baseApi = new TessBaseAPI();
+            _field.setText(matricula);
+
+            /*TessBaseAPI baseApi = new TessBaseAPI();
             baseApi.setDebug(true);
             baseApi.init(DATA_PATH, lang);
             baseApi.setImage(imagen);
 
             String recognizedText = baseApi.getUTF8Text();
 
-            baseApi.end();
+            baseApi.end();*/
 
             // You now have the text in recognizedText var, you can do anything with it.
             // We will display a stripped out trimmed alpha-numeric version of it (if lang is eng)
             // so that garbage doesn't make it to the display.
 
-            Log.v(TAG, "OCRED TEXT: " + recognizedText);
+            /*Log.v(TAG, "OCRED TEXT: " + recognizedText);
 
             if ( lang.equalsIgnoreCase("eng") ) {
                 recognizedText = recognizedText.replaceAll("[^a-zA-Z0-9]+", " ");
@@ -139,23 +142,23 @@ public class Principal extends AppCompatActivity{
 
             if ( recognizedText.length() != 0 ) {
                 _field.setText(recognizedText);
-            }
+            }*/
         }
 
         _path = DATA_PATH + "/ocr.jpg";
     }
 
-    public class ButtonClickHandler implements View.OnClickListener {
+    /*public class ButtonClickHandler implements View.OnClickListener {
         public void onClick(View view) {
             Log.v(TAG, "Starting Camera app");
             startCameraActivity();
         }
-    }
+    }*/
 
     // Simple android photo capture:
     // http://labs.makemachine.net/2010/03/simple-android-photo-capture/
 
-    protected void startCameraActivity() {
+    /*protected void startCameraActivity() {
         File file = new File(_path);
         Uri outputFileUri = Uri.fromFile(file);
 
@@ -163,9 +166,9 @@ public class Principal extends AppCompatActivity{
         intent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
 
         startActivityForResult(intent, 0);
-    }
+    }*/
 
-    @Override
+    /*@Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         Log.i(TAG, "resultCode: " + resultCode);
@@ -175,22 +178,21 @@ public class Principal extends AppCompatActivity{
         } else {
             Log.v(TAG, "User cancelled");
         }
-    }
+    }*/
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        outState.putBoolean(Principal.PHOTO_TAKEN, _taken);
+        outState.putParcelable("img",imagen);
+        outState.putString("matricula", matricula);
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        Log.i(TAG, "onRestoreInstanceState()");
-        if (savedInstanceState.getBoolean(Principal.PHOTO_TAKEN)) {
-            onPhotoTaken();
-        }
+        _image.setImageBitmap((Bitmap)savedInstanceState.get("img"));
+        _field.setText((String)savedInstanceState.get("matricula"));
     }
 
-    protected void onPhotoTaken() {
+    /*protected void onPhotoTaken() {
         _taken = true;
 
         BitmapFactory.Options options = new BitmapFactory.Options();
@@ -246,7 +248,7 @@ public class Principal extends AppCompatActivity{
         Log.v(TAG, "Before baseApi");
 
 
-    }
+    }*/
 
 
 }

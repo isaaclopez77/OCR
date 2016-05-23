@@ -10,18 +10,10 @@
         android:layout_height="wrap_content">
 
         <Button
-            android:id="@+id/button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Capture Image"
-            android:layout_weight="1" />
-
-        <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Show Camera"
-            android:id="@+id/button2"
-            android:layout_weight="1" />
+            android:id="@+id/button2" />
     </LinearLayout>
 
     <EditText
